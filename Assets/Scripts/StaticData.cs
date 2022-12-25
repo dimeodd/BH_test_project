@@ -1,0 +1,16 @@
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "StaticData", menuName = "BH_test_project/StaticData", order = 0)]
+public class StaticData : ScriptableObject
+{
+    [Header("Materials")]
+    public Material defMaterial;
+    public Material invincibleMaterial;
+
+
+    [Header("Player property")]
+    public float playerSpeed = 2;
+    public float dashLeght_m = 3;
+    public float invincibleCooldown_sec = 3;
+
+}

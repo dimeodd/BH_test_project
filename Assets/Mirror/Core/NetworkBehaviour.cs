@@ -60,6 +60,7 @@ namespace Mirror
 
         /// <summary>isOwned is true on the client if this NetworkIdentity is one of the .owned entities of our connection on the server.</summary>
         // for example: main player & pets are owned. monsters & npcs aren't.
+        [Obsolete("надо использовать isLocalPlayer")]
         public bool isOwned => netIdentity.isOwned;
 
         /// <summary>True on client if that component has been assigned to the client. E.g. player, pets, henchmen.</summary>
