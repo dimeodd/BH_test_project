@@ -22,14 +22,15 @@ public class PlayerInput_NetScript : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
-            _provider.cameraSwaper.OnStartClient();
+            _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
+            _provider.cameraSwaper.ToThirdViev();
         }
     }
     public override void OnStopClient()
     {
         if (isLocalPlayer)
         {
-            _provider.cameraSwaper.OnStopClient();
+            _provider.cameraSwaper.ToWaitViev();
         }
     }
 
@@ -42,6 +43,11 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
             var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
             _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
+            if (Input.GetMouseButtonDown(0))
+            {
+                var dash = new DashSystem(_provider, StaticData);
+                dash.UseSkill();
+            }
         }
     }
 

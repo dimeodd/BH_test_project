@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerAnimation_Script : MonoBehaviour
+public class PlayerAnimation : MonoBehaviour
 {
     public const string
         ANIMATOR_FRONT = "Front",

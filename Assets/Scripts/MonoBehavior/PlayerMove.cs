@@ -26,6 +26,7 @@ public class PlayerMove : MonoBehaviour
     {
         _moveDir = newDirection.normalized;
     }
+    public Vector2 GetMoveDir() => _moveDir;
     public void SetLookOffset(Vector2 lookOffset)
     {
         var horizontalRotationOffset = new Quaternion(0, lookOffset.x, 0, 1);

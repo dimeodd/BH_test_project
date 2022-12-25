@@ -48,7 +48,6 @@ GameObject:
   - component: {fileID: 8659972069820233410}
   - component: {fileID: -969848412671763889}
   - component: {fileID: -4517614923125550559}
-  - component: {fileID: -7765454141192404700}
   - component: {fileID: -5136553414335679477}
   - component: {fileID: 3955289048223807816}
   m_Layer: 10
@@ -224,18 +223,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec541c015abca694dbc5f090502b171b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &-7765454141192404700
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3749628499299970087}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d19c058097670e6419e577ef6a2a9139, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &-5136553414335679477
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -248,12 +235,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eca62a863f4dc514d98d9f34ba00c1d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  rigidbody: {fileID: -3257244414758977055}
   horizontalTransform: {fileID: 4498337403799408577}
   followTarget: {fileID: 8236016602639319162}
   animator: {fileID: 7533786455608186299}
   skinRenderer: {fileID: 7577630461410786313}
   moveScript: {fileID: -4517614923125550559}
-  cameraSwaper: {fileID: -7765454141192404700}
 --- !u!114 &3955289048223807816
 MonoBehaviour:
   m_ObjectHideFlags: 0
