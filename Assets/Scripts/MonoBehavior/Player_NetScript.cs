@@ -9,12 +9,15 @@ public class Player_NetScript : NetworkBehaviour
     public Renderer SkinRenderer;
 
     public Transform followTarget;
+    Rigidbody _rigidbody;
     Transform _transform;
     bool _hasFocus = true;
+    Vector3 _velocity;
 
     public override void OnStartClient()
     {
         _transform = transform;
+        _rigidbody = GetComponent<Rigidbody>();
 
         if (isLocalPlayer)
         {
@@ -67,7 +70,7 @@ public class Player_NetScript : NetworkBehaviour
         //input
         var inputFront = Input.GetAxis("Vertical");
         var inputSide = Input.GetAxis("Horizontal");
-        var speed = StaticData.playerSpeed * Time.deltaTime;
+        var speed = StaticData.playerSpeed;// * Time.deltaTime;
 
         //смещение игрока относительно взгляда
         var moveDir = new Vector2(inputFront, inputSide).normalized;
@@ -75,8 +78,16 @@ public class Player_NetScript : NetworkBehaviour
         var front = Vector2.Dot(aimDir, moveDir);
         var side = Vector2.Dot(aimDir, Vector2.Perpendicular(moveDir));
 
-        _transform.position += new Vector3(front, 0, side) * speed;
+        _velocity = new Vector3(front, 0, side) * speed;
     }
+
+    void FixedUpdate()
+    {
+        _rigidbody.velocity = _velocity;
+    }
+
+
+
     void LookInput()
     {
         var mouseOffset = new Vector3(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));

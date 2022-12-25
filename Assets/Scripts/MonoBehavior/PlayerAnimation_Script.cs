@@ -19,7 +19,7 @@ public class PlayerAnimation_Script : MonoBehaviour
         _lastPos = _locTransform.position.GetXZ();
     }
 
-    void Update()
+    void FixedUpdate()
     {
         var currPos = _locTransform.position.GetXZ();
 
