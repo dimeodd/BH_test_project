@@ -18,7 +18,6 @@ public class StaticData : ScriptableObject
 
 
     [Header("Player property")]
-    public GameObject playerPrefab;
     public float playerSpeed = 2;
     public float dashLeght_m = 3;
     public float invincibleCooldown_sec = 3;

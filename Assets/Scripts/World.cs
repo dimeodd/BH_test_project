@@ -44,21 +44,21 @@ public class World : NetworkBehaviour
             throw new System.Exception("EcsWorld не очищен");
         _world = new EcsWorld();
 
-        _upd = new EcsSystem(_world)
-            .Add(new InpytSystem())
-            ;
+        // _upd = new EcsSystem(_world)
+        //     .Add(new InpytSystem())
+        //     ;
 
-        _fixUpd = new EcsSystem(_world)
-            .Add(new MoveSystem())
-            ;
+        // _fixUpd = new EcsSystem(_world)
+        //     .Add(new MoveSystem())
+        //     ;
 
-        _allSys = new EcsSystem(_world)
-            .Add(_upd)
-            .Add(_fixUpd)
-            .Inject(StaticData)
-            .Inject(SceneData)
-            ;
-        _allSys.Init();
+        // _allSys = new EcsSystem(_world)
+        //     .Add(_upd)
+        //     .Add(_fixUpd)
+        //     .Inject(StaticData)
+        //     .Inject(SceneData)
+        //     ;
+        // _allSys.Init();
     }
 
     [Server]
@@ -71,13 +71,13 @@ public class World : NetworkBehaviour
     [Server]
     void Update()
     {
-        _upd.Upd();
+        // _upd.Upd();
     }
 
     [Server]
     void FixedUpdate()
     {
-        _fixUpd.Upd();
+        // _fixUpd.Upd();
     }
 
 

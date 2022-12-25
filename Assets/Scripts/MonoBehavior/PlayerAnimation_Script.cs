@@ -8,13 +8,13 @@ public class PlayerAnimation_Script : MonoBehaviour
         ANIMATOR_FRONT = "Front",
         ANIMATOR_SIDE = "Side";
 
-    Animator _animator;
+    PlayerProvider _provider;
     Transform _locTransform;
-    Vector2 _lastPos;
+    Vector2 _lastPos, _moveDelta;
 
     void Start()
     {
-        _animator = GetComponent<Animator>();
+        _provider = GetComponent<PlayerProvider>();
         _locTransform = transform;
         _lastPos = _locTransform.position.GetXZ();
     }
@@ -22,14 +22,14 @@ public class PlayerAnimation_Script : MonoBehaviour
     void FixedUpdate()
     {
         var currPos = _locTransform.position.GetXZ();
+        _moveDelta = Vector2.Lerp(_moveDelta, (currPos - _lastPos).normalized, 0.8f);
 
-        var moveDir = (currPos - _lastPos).normalized;
-        var aimDir = (_locTransform.rotation * Vector3.forward).GetXZ();
+        var aimDir = (_provider.horizontalTransform.rotation * Vector3.forward).GetXZ();
 
-        var front = Vector2.Dot(aimDir, moveDir);
-        var side = Vector2.Dot(aimDir, Vector2.Perpendicular(moveDir));
-        _animator.SetFloat(ANIMATOR_FRONT, front, 0.1f, Time.fixedDeltaTime);
-        _animator.SetFloat(ANIMATOR_SIDE, side, 0.1f, Time.fixedDeltaTime);
+        var front = Vector2.Dot(aimDir, _moveDelta);
+        var side = Vector2.Dot(aimDir, Vector2.Perpendicular(_moveDelta));
+        _provider.animator.SetFloat(ANIMATOR_FRONT, front, 0.1f, Time.fixedDeltaTime);
+        _provider.animator.SetFloat(ANIMATOR_SIDE, side, 0.1f, Time.fixedDeltaTime);
 
         _lastPos = currPos;
     }

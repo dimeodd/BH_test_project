@@ -7,63 +7,66 @@ using EcsStructs;
 
 public class PlayerInput_NetScript : NetworkBehaviour
 {
-    [SyncVar(hook = nameof(SyncInput))]
-    public Vector2 _moveInput;
-
-    [SyncVar(hook = nameof(SyncLook))]
-    public Vector2 _lookEiler = new Vector2();
-
     public StaticData StaticData;
+
     [HideInInspector] public Entity playerEnt;
     [HideInInspector] public GameObject playerGo;
+
+    PlayerProvider _provider = null;
+    void Awake()
+    {
+        _provider = GetComponent<PlayerProvider>();
+    }
 
     public override void OnStartClient()
     {
         if (isLocalPlayer)
         {
-            CmdCreatePlayer(netId);
+            _provider.cameraSwaper.OnStartClient();
         }
     }
     public override void OnStopClient()
     {
-        if (isServer)
+        if (isLocalPlayer)
         {
-            World.Singleton.DestroyPlayer(this);
+            _provider.cameraSwaper.OnStopClient();
         }
     }
 
     void Update()
     {
-        if (!isLocalPlayer) return;
+        if (isLocalPlayer)
+        {
+            var moveDir = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+            _provider.moveScript.SetMoveDirection(moveDir);
 
-        _moveInput = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-
-        var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
-        _lookEiler += mouseOffset;
+            var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
+            _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
+        }
     }
 
 
-    [Command]
-    void CmdCreatePlayer(uint a_netId)
-    {
-        World.Singleton.CreatePlayer(a_netId, this);
-    }
+    // [Command]
+    // void CmdCreatePlayer(uint a_netId)
+    // {
+    //     World.Singleton.CreatePlayer(a_netId, this);
+    // }
 
-    void SyncInput(Vector2 oldValue, Vector2 newValue)
-    {
-        if (!isServer || playerEnt.IsDestroyed()) return;
+    // void SyncInput(Vector2 oldValue, Vector2 newValue)
+    // {
+    //     if (!isServer || playerEnt.Is;Destroyed()) return;
 
-        ref var input = ref playerEnt.Get<InputData>();
-        input.move = newValue;
-    }
+    //     ref var input = ref playerEnt.Get<InputData>();
+    //     input.move = newValue;
+    // }
 
-    void SyncLook(Vector2 oldValue, Vector2 newValue)
-    {
-        if (!isServer || playerEnt.IsDestroyed()) return;
+    // void SyncLook(Vector2 oldValue, Vector2 newValue)
+    // {
+    //     if (!isServer || playerEnt.IsDestroyed()) return;
 
-        ref var input = ref playerEnt.Get<InputData>();
-        input.HorizontalRotation = newValue.x;
-        input.VerticalRotation = newValue.y;
-    }
+    //     ref var input = ref playerEnt.Get<InputData>();
+    //     input.HorizontalRotation = newValue.x;
+    //     input.VerticalRotation = newValue.y;
+    // }
 
 }
