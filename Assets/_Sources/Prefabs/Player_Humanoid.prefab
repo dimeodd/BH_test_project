@@ -1212,6 +1212,7 @@ GameObject:
   - component: {fileID: 7611830183124348135}
   - component: {fileID: -7765454141192404700}
   - component: {fileID: -969848412671763889}
+  - component: {fileID: -5136553414335679477}
   - component: {fileID: 3955289048223807816}
   m_Layer: 10
   m_Name: Player_Humanoid
@@ -1385,6 +1386,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48f7b54487fd73543b754d3b511c5a90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &-5136553414335679477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3749628499299970087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca62a863f4dc514d98d9f34ba00c1d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  followTarget: {fileID: 8236016602639319162}
 --- !u!114 &3955289048223807816
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1400,8 +1414,9 @@ MonoBehaviour:
   syncDirection: 1
   syncMode: 0
   syncInterval: 0.05
-  _input: {x: 0, y: 0}
-  rotation: {x: 0, y: 0, z: 0, w: 0}
+  _moveInput: {x: 0, y: 0}
+  _mouseOffset: {x: 0, y: 0}
+  StaticData: {fileID: 11400000, guid: d6876101c2c2f42468c2b37c060d34e5, type: 2}
   playerGo: {fileID: 0}
 --- !u!1 &3937936529049106435
 GameObject:

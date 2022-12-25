@@ -13,6 +13,8 @@ public class StaticData : ScriptableObject
     public float upMaxAngle = 80;
     [Range(0, 179)]
     public float downMaxAngle = 60;
+    [Range(0, 100)]
+    public float mouseSensetivity = 50;
 
 
     [Header("Player property")]

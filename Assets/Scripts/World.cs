@@ -104,15 +104,17 @@ public class World : NetworkBehaviour
 
         var playerGo = inputScript.gameObject;
         playerGo.transform.position = rndPos.position;
+        var playerProvider = playerGo.GetComponent<PlayerProvider>();
 
         var ent = ecsWorld.NewEntity();
         MyEcs.GoPool.Helper.LinkObjects(ent, playerGo);
 
         ref var playerData = ref ent.Get<PlayerData>();
-        playerData.animator = playerGo.GetComponent<Animator>();
+        playerData.followTarget = playerProvider.followTarget;
 
         ref var input = ref ent.Get<InputData>();
-        input.rotation = playerGo.transform.rotation;
+        input.HorizontalRotation = 0;
+        input.VerticalRotation = 0;
 
         ref var netData = ref ent.Get<NetData>();
         netData.netId = a_netId;
@@ -120,9 +122,11 @@ public class World : NetworkBehaviour
         ref var rbData = ref ent.Get<RigidbodyData>();
         rbData.rigidbody = playerGo.GetComponent<Rigidbody>();
 
+        ref var tfData = ref ent.Get<TransformData>();
+        tfData.transform = playerGo.transform;
+
         inputScript.playerEnt = ent;
         inputScript.playerGo = playerGo;
-        inputScript.rotation = input.rotation;
     }
 
     [Server]

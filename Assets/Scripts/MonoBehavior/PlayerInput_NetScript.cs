@@ -8,10 +8,12 @@ using EcsStructs;
 public class PlayerInput_NetScript : NetworkBehaviour
 {
     [SyncVar(hook = nameof(SyncInput))]
-    public Vector2 _input;
-    [SyncVar(hook = nameof(SyncRotation))]
-    public Quaternion rotation;
+    public Vector2 _moveInput;
 
+    [SyncVar(hook = nameof(SyncLook))]
+    public Vector2 _lookEiler = new Vector2();
+
+    public StaticData StaticData;
     [HideInInspector] public Entity playerEnt;
     [HideInInspector] public GameObject playerGo;
 
@@ -34,10 +36,10 @@ public class PlayerInput_NetScript : NetworkBehaviour
     {
         if (!isLocalPlayer) return;
 
-        var inputFront = Input.GetAxis("Vertical");
-        var inputSide = Input.GetAxis("Horizontal");
-        var newVec = new Vector2(inputFront, inputSide);
-        _input = newVec;
+        _moveInput = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+
+        var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
+        _lookEiler += mouseOffset;
     }
 
 
@@ -55,11 +57,13 @@ public class PlayerInput_NetScript : NetworkBehaviour
         input.move = newValue;
     }
 
-    void SyncRotation(Quaternion oldValue, Quaternion newValue)
+    void SyncLook(Vector2 oldValue, Vector2 newValue)
     {
         if (!isServer || playerEnt.IsDestroyed()) return;
 
         ref var input = ref playerEnt.Get<InputData>();
-        input.rotation = newValue;
+        input.HorizontalRotation = newValue.x;
+        input.VerticalRotation = newValue.y;
     }
+
 }
