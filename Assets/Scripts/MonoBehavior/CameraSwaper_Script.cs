@@ -1,19 +1,27 @@
 using UnityEngine;
+using Mirror;
 
-public class CameraSwaper_Script : MonoBehaviour
+public class CameraSwaper_Script : NetworkBehaviour
 {
     public Transform followTarget;
     SceneData _scene;
 
-    void Start()
+    public override void OnStartClient()
     {
-        _scene = World.Singleton.SceneData;
-        ToThirdViev();
+        Debug.Log("CameraSwaper_Script 1");
+        if (isLocalPlayer)
+        {
+            Debug.Log("CameraSwaper_Script 2");
+            _scene = World.Singleton.SceneData;
+            ToThirdViev();
+        }
     }
-    void OnDestroy()
+    public override void OnStopClient()
     {
-        if (_scene.followCamera.Follow == followTarget)
+        if (isLocalPlayer)
+        {
             ToWaitViev();
+        }
     }
 
     public void ToThirdViev()

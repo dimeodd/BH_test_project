@@ -12,8 +12,6 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [SyncVar(hook = nameof(SyncRotation))]
     public Quaternion rotation;
 
-    public Transform followTarget;
-
     [HideInInspector] public Entity playerEnt;
     [HideInInspector] public GameObject playerGo;
 

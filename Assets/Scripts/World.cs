@@ -9,13 +9,28 @@ using EcsSystems;
 public class World : NetworkBehaviour
 {
     static World _singleton;
-    public static World Singleton => _singleton;
+    public static World Singleton
+    {
+        get
+        {
+            if (_singleton == null)
+            {
+                _singleton = FindObjectOfType<World>();
+            }
+            return _singleton;
+        }
+    }
 
     public StaticData StaticData;
     public SceneData SceneData;
 
     EcsWorld _world;
     EcsSystem _allSys, _upd, _fixUpd;
+
+    void OnDestroy()
+    {
+        _singleton = null;
+    }
 
 
     [Server]
@@ -25,17 +40,12 @@ public class World : NetworkBehaviour
 
         InitSpawnPoints();
 
-        if (_singleton != null)
-            throw new System.Exception("синглтон не очищен");
-        _singleton = this;
-
         if (_world != null)
             throw new System.Exception("EcsWorld не очищен");
         _world = new EcsWorld();
 
         _upd = new EcsSystem(_world)
             .Add(new InpytSystem())
-            .Add(new PlayerAnimationSystem())
             ;
 
         _fixUpd = new EcsSystem(_world)
@@ -51,19 +61,20 @@ public class World : NetworkBehaviour
         _allSys.Init();
     }
 
-
+    [Server]
     public override void OnStopServer()
     {
-        _singleton = null;
         _world.Dispose();
         _world = null;
     }
 
+    [Server]
     void Update()
     {
         _upd.Upd();
     }
 
+    [Server]
     void FixedUpdate()
     {
         _fixUpd.Upd();
@@ -91,8 +102,8 @@ public class World : NetworkBehaviour
         var rndIndex = Random.Range(0, sceneData.SpawnPositions.Length - 1);
         var rndPos = sceneData.SpawnPositions[rndIndex];
 
-        var playerGo = Instantiate(stData.playerPrefab, rndPos.position, Quaternion.identity);
-        NetworkServer.Spawn(playerGo);
+        var playerGo = inputScript.gameObject;
+        playerGo.transform.position = rndPos.position;
 
         var ent = ecsWorld.NewEntity();
         MyEcs.GoPool.Helper.LinkObjects(ent, playerGo);
@@ -105,7 +116,6 @@ public class World : NetworkBehaviour
 
         ref var netData = ref ent.Get<NetData>();
         netData.netId = a_netId;
-        netData.animatorProvider = playerGo.GetComponent<AnimatorProvider_NetSctipt>(); ;
 
         ref var rbData = ref ent.Get<RigidbodyData>();
         rbData.rigidbody = playerGo.GetComponent<Rigidbody>();
@@ -118,8 +128,6 @@ public class World : NetworkBehaviour
     [Server]
     internal void DestroyPlayer(PlayerInput_NetScript inputScript)
     {
-        NetworkServer.Destroy(inputScript.playerGo);
-        Destroy(inputScript.playerGo, 0.001f);
         inputScript.playerEnt.Destroy();
     }
 }
