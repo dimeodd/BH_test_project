@@ -14,43 +14,42 @@ public class Player_NetScript : NetworkBehaviour
     bool _hasFocus = true;
     Vector3 _velocity;
 
+    
+
     public override void OnStartClient()
     {
         _transform = transform;
         _rigidbody = GetComponent<Rigidbody>();
 
-        if (isLocalPlayer)
-        {
-            World.Singleton.SceneData.followCamera.Follow = followTarget;
-            World.Singleton.SceneData.waitCamera.Priority = 0;
-            _transform.LookAt(new Vector3(), Vector3.up);
+        if (!isLocalPlayer) return;
 
-            DisableCursor();
-        }
+        World.Singleton.SceneData.followCamera.Follow = followTarget;
+        World.Singleton.SceneData.waitCamera.Priority = 0;
+        _transform.LookAt(new Vector3(), Vector3.up);
+
+        DisableCursor();
     }
     public override void OnStopClient()
     {
-        if (isLocalPlayer)
-        {
-            World.Singleton.SceneData.waitCamera.Priority = 100;
+        if (!isLocalPlayer) return;
 
-            EnableCursor();
-        }
+        World.Singleton.SceneData.waitCamera.Priority = 100;
+
+        EnableCursor();
     }
 
     void Update()
     {
-        if (isLocalPlayer)
-        {
-            CheckAltButton();
+        if (!isLocalPlayer) return;
 
-            MoveInput();
-            if (_hasFocus)
-            {
-                LookInput();
-            }
+        CheckAltButton();
+        MoveInput();
+        if (_hasFocus)
+        {
+            LookInput();
         }
     }
+
     void CheckAltButton()
     {
         if (Input.GetKeyDown(KeyCode.LeftAlt))
