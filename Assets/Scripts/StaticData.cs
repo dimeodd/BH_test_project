@@ -8,6 +8,13 @@ public class StaticData : ScriptableObject
     public Material invincibleMaterial;
 
 
+    [Header("Camera property")]
+    [Range(0, 179)]
+    public float upMaxAngle = 80;
+    [Range(0, 179)]
+    public float downMaxAngle = 60;
+
+
     [Header("Player property")]
     public float playerSpeed = 2;
     public float dashLeght_m = 3;

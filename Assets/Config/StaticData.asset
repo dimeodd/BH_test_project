@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   defMaterial: {fileID: 2100000, guid: 31e24dff9466b994ca155072013288e0, type: 2}
   invincibleMaterial: {fileID: 2100000, guid: 9a4c5d3252bcb6c4ab2e00daa50884b5, type: 2}
+  upMaxAngle: 80
+  downMaxAngle: 60
   playerSpeed: 5
   dashLeght_m: 3
   invincibleCooldown_sec: 3

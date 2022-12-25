@@ -28,8 +28,8 @@ public class PlayerAnimation_Script : MonoBehaviour
 
         var front = Vector2.Dot(aimDir, moveDir);
         var side = Vector2.Dot(aimDir, Vector2.Perpendicular(moveDir));
-        _animator.SetFloat(ANIMATOR_FRONT, front, 0.1f, Time.deltaTime);
-        _animator.SetFloat(ANIMATOR_SIDE, side, 0.1f, Time.deltaTime);
+        _animator.SetFloat(ANIMATOR_FRONT, front, 0.2f, Time.deltaTime);
+        _animator.SetFloat(ANIMATOR_SIDE, side, 0.2f, Time.deltaTime);
 
         _lastPos = currPos;
     }
