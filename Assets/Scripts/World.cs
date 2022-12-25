@@ -13,8 +13,8 @@ public class World : NetworkBehaviour
 
     public StaticData StaticData;
     public SceneData SceneData;
-    public EcsWorld _world;
 
+    EcsWorld _world;
     EcsSystem _allSys, _upd, _fixUpd;
 
 
@@ -49,6 +49,14 @@ public class World : NetworkBehaviour
             .Inject(SceneData)
             ;
         _allSys.Init();
+    }
+
+
+    public override void OnStopServer()
+    {
+        _singleton = null;
+        _world.Dispose();
+        _world = null;
     }
 
     void Update()
@@ -105,5 +113,13 @@ public class World : NetworkBehaviour
         inputScript.playerEnt = ent;
         inputScript.playerGo = playerGo;
         inputScript.rotation = input.rotation;
+    }
+
+    [Server]
+    internal void DestroyPlayer(PlayerInput_NetScript inputScript)
+    {
+        NetworkServer.Destroy(inputScript.playerGo);
+        Destroy(inputScript.playerGo, 0.001f);
+        inputScript.playerEnt.Destroy();
     }
 }

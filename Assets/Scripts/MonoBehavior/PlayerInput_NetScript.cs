@@ -12,22 +12,24 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [SyncVar(hook = nameof(SyncRotation))]
     public Quaternion rotation;
 
+    public Transform followTarget;
+
     [HideInInspector] public Entity playerEnt;
     [HideInInspector] public GameObject playerGo;
 
     public override void OnStartClient()
     {
-        if (!isLocalPlayer) return;
-
-        CmdCreatePlayer(netId);
+        if (isLocalPlayer)
+        {
+            CmdCreatePlayer(netId);
+        }
     }
     public override void OnStopClient()
     {
-        if (!isServer) return;
-
-        NetworkServer.Destroy(playerGo);
-        Destroy(playerGo, 0.001f);
-        playerEnt.Destroy();
+        if (isServer)
+        {
+            World.Singleton.DestroyPlayer(this);
+        }
     }
 
     void Update()
