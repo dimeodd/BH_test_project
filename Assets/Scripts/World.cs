@@ -24,20 +24,8 @@ public class World : NetworkBehaviour
     public SceneData SceneData;
 
     Dictionary<uint, PlayerInput_NetScript> _netScriptDict = new Dictionary<uint, PlayerInput_NetScript>();
-    List<uint> _netIndexes = new List<uint>();
+    SyncList<uint> _netIndexes = new SyncList<uint>();
     SyncList<int> _SyncScoreCount = new SyncList<int>();
-
-    [Server]
-    void ChangeVector3Vars(int newValue)
-    {
-        _SyncScoreCount.Add(newValue);
-    }
-
-    [Server]
-    public override void OnStartServer()
-    {
-        if (!isServer) return;
-    }
 
     [Server]
     public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript)
@@ -45,6 +33,8 @@ public class World : NetworkBehaviour
         _netScriptDict.Add(targetNetId, netScript);
         _netIndexes.Add(targetNetId);
         _SyncScoreCount.Add(0);
+
+        Debug.Log("Add key " + targetNetId);
     }
     [Server]
     public void PlayerRemove(uint targetNetId)
@@ -53,14 +43,15 @@ public class World : NetworkBehaviour
 
         var index = _netIndexes.FindIndex(x => x == targetNetId);
         _SyncScoreCount.RemoveAt(index);
-        _netIndexes.RemoveAt(index);
+        _netIndexes.Remove(targetNetId);
     }
 
     [Server]
     public void AddPoint(uint targetNetId)
     {
         var index = _netIndexes.FindIndex(x => x == targetNetId);
-        _SyncScoreCount[index]++;
+        if (index >= 0)
+            _SyncScoreCount[index]++;
     }
 
 
@@ -70,42 +61,26 @@ public class World : NetworkBehaviour
         AddPoint(owner);
 
         var otherNetScript = _netScriptDict[targetNetId];
-        otherNetScript.RpcDamage();
+        otherNetScript.RpcSetInvincible();
+        StartCoroutine(RemoveInvincible(otherNetScript));
+    }
+
+    [Server]
+    public IEnumerator RemoveInvincible(PlayerInput_NetScript netScript)
+    {
+        yield return new WaitForSeconds(StaticData.invincibleCooldown_sec);
+        netScript.RpcRemoveInvincible();
     }
 
     #region Client
 
-    public List<int> ScoreCount;
-    void SyncScoreCount(SyncList<int>.Operation op, int index, int oldItem, int newItem)
-    {
-        switch (op)
-        {
-            case SyncList<int>.Operation.OP_ADD:
-                {
-                    ScoreCount.Add(newItem);
-                    break;
-                }
-            case SyncList<int>.Operation.OP_CLEAR:
-                {
-                    ScoreCount.Clear();
-                    break;
-                }
-            case SyncList<int>.Operation.OP_INSERT:
-                {
+    internal uint myIndex = 0;
+    GUIStyle selectedStyle = null;
 
-                    break;
-                }
-            case SyncList<int>.Operation.OP_REMOVEAT:
-                {
-                    ScoreCount.Remove(index);
-                    break;
-                }
-            case SyncList<int>.Operation.OP_SET:
-                {
-                    ScoreCount[index] = newItem;
-                    break;
-                }
-        }
+    void Awake()
+    {
+        selectedStyle = new GUIStyle();
+        selectedStyle.normal.textColor = Color.red;
     }
 
     void OnGUI()
@@ -121,8 +96,14 @@ public class World : NetworkBehaviour
             sb.Append(i);
             sb.Append("\tScore:");
             sb.Append(SCORE);
-
-            GUILayout.Label(sb.ToString());
+            if (myIndex == _netIndexes[i])
+            {
+                GUILayout.Label(sb.ToString(), selectedStyle);
+            }
+            else
+            {
+                GUILayout.Label(sb.ToString());
+            }
 
             sb.Clear();
             i++;

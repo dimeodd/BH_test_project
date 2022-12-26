@@ -53,7 +53,8 @@ public class DashSystem
                     }
 
                     var otherNetScript = hitList[i].transform.gameObject.GetComponent<PlayerInput_NetScript>();
-                    Debug.Log($"Client: 1 Hit from {_netScript.netId} to {otherNetScript.netId}");
+
+                    if (otherNetScript.isInvincible) break;
 
                     if (_netScript.isServer)
                         World.Singleton.DashHit(_netScript.netId, otherNetScript.netId);

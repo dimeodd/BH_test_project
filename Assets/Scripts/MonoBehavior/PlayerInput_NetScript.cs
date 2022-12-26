@@ -13,6 +13,10 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [HideInInspector] public GameObject playerGo;
 
     PlayerProvider _provider = null;
+
+    [SyncVar]
+    public bool isInvincible = false;
+
     void Awake()
     {
         _provider = GetComponent<PlayerProvider>();
@@ -30,11 +34,16 @@ public class PlayerInput_NetScript : NetworkBehaviour
             _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
             _provider.cameraSwaper.ToThirdViev();
             DisableCursor();
+            World.Singleton.myIndex = netId;
         }
 
-        if (isServer)
+        if (isServer & isLocalPlayer)
         {
             World.Singleton.PlayerRegistr(netId, this);
+        }
+        else if (!isServer & isLocalPlayer)
+        {
+            CmdPlayerRegister();
         }
     }
     public override void OnStopClient()
@@ -104,10 +113,24 @@ public class PlayerInput_NetScript : NetworkBehaviour
         World.Singleton.DashHit(owner, target);
     }
 
+    [Command]
+    public void CmdPlayerRegister()
+    {
+        World.Singleton.PlayerRegistr(netId, this);
+    }
+
 
     [ClientRpc]
-    public void RpcDamage()
+    public void RpcSetInvincible()
     {
+        isInvincible = true;
         _provider.skinRenderer.material = StaticData.invincibleMaterial;
+    }
+
+    [ClientRpc]
+    public void RpcRemoveInvincible()
+    {
+        isInvincible = false;
+        _provider.skinRenderer.material = StaticData.defMaterial;
     }
 }
