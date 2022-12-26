@@ -11,6 +11,4 @@ public class PlayerProvider : MonoBehaviour
     public Renderer skinRenderer;
 
     public PlayerMove moveScript;
-
-    public CameraSwaper cameraSwaper = null;
 }

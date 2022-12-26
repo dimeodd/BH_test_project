@@ -1,25 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
-using MyEcs;
-using EcsStructs;
 
 public class PlayerInput_NetScript : NetworkBehaviour
 {
-    public StaticData StaticData;
-
-    [HideInInspector] public Entity playerEnt;
-    [HideInInspector] public GameObject playerGo;
-
-    PlayerProvider _provider = null;
-    SceneData _scene = null;
-
     [SyncVar]
     public bool isInvincible = false;
 
-
     public bool blockInput = false;
+    public StaticData StaticData;
+
+    SceneData _scene = null;
+    PlayerProvider _provider = null;
+    CameraSwaper _cameraSwaper = null;
 
     void Awake()
     {
@@ -29,25 +21,25 @@ public class PlayerInput_NetScript : NetworkBehaviour
     public override void OnStartLocalPlayer()
     {
         _scene = World.Singleton.SceneData;
+        _cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
 
-        _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
-        _provider.cameraSwaper.ToThirdViev();
-        DisableCursor();
         World.Singleton.myIndex = netId;
 
-        Restart();
-
-        CmdPlayerRegister();
+        RestartUI();
+    }
+    public override void OnStartServer()
+    {
+        World.Singleton.PlayerRegistr(netId, this);
     }
 
+    public override void OnStopLocalPlayer()
+    {
+        _cameraSwaper.ToWaitViev();
+        EnableCursor();
+    }
     public override void OnStopServer()
     {
         World.Singleton.PlayerRemove(netId);
-    }
-    public override void OnStopLocalPlayer()
-    {
-        _provider.cameraSwaper.ToWaitViev();
-        EnableCursor();
     }
 
     void Update()
@@ -79,6 +71,7 @@ public class PlayerInput_NetScript : NetworkBehaviour
         }
     }
 
+    #region GUI & Cursor
 
     void OnGUI()
     {
@@ -95,10 +88,9 @@ public class PlayerInput_NetScript : NetworkBehaviour
             DisableCursor();
         }
     }
-
     void EnableCursor()
     {
-        Cursor.lockState = CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = true;
     }
     void DisableCursor()
@@ -107,32 +99,21 @@ public class PlayerInput_NetScript : NetworkBehaviour
         Cursor.visible = false;
     }
 
+    #endregion
+
+    #region Dash
 
     [Command]
     public void CmdDashHit(uint owner, uint target)
     {
         World.Singleton.DashHit(owner, target);
     }
-    [Command]
-    public void CmdPlayerRegister()
-    {
-        World.Singleton.PlayerRegistr(netId, this);
-    }
-    [Command]
-    public void CmdPlayerRemove(uint a_netId)
-    {
-        Debug.Log("net PlayerRemove.  isServ:" + isServer);
-        World.Singleton.PlayerRemove(netId);
-    }
-
-
     [ClientRpc]
     public void RpcSetInvincible()
     {
         isInvincible = true;
         _provider.skinRenderer.material = StaticData.invincibleMaterial;
     }
-
     [ClientRpc]
     public void RpcRemoveInvincible()
     {
@@ -140,33 +121,45 @@ public class PlayerInput_NetScript : NetworkBehaviour
         _provider.skinRenderer.material = StaticData.defMaterial;
     }
 
+    #endregion
+
+    #region Win
+
     [ClientRpc]
     public void RpcShowWinWindow(string text)
     {
         if (isLocalPlayer)
         {
             EnableCursor();
+            _cameraSwaper.ToWaitViev();
+
             blockInput = true;
             _scene.winnerText.text = text;
             _scene.winnerWindow.SetActive(true);
         }
     }
-
     [ClientRpc]
-    public void RpcRestart()
+    public void RpcRestartUI()
     {
         if (isLocalPlayer)
         {
-            Restart();
+            RestartUI();
+
+            var spawnPosArray = GameObject.FindObjectsOfType<NetworkStartPosition>();
+
+            var rndIndex = Random.Range(0, spawnPosArray.Length);
+            var pos = spawnPosArray[rndIndex].transform.position;
+            transform.position = pos;
         }
     }
-
-    void Restart()
+    void RestartUI()
     {
         DisableCursor();
+        _cameraSwaper.ToThirdViev();
+
         blockInput = false;
         _scene.winnerWindow.SetActive(false);
-        var pos = new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10));
-        transform.position = pos;
     }
+
+    #endregion 
 }

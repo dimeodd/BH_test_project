@@ -59,7 +59,7 @@ public class PlayerMove : MonoBehaviour
 
         //смещение игрока относительно взгляда
         var moveDir = _moveDir;
-        var aimDir = (_provider.horizontalTransform.rotation * Vector3.forward).GetXZ();
+        var aimDir = (_provider.horizontalTransform.rotation * Vector3.forward).GetXZ_v2();
         var front = Vector2.Dot(aimDir, moveDir);
         var side = Vector2.Dot(aimDir, Vector2.Perpendicular(moveDir));
 

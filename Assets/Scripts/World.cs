@@ -2,44 +2,38 @@ using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
-using System;
 using System.Text;
 
 public class World : NetworkBehaviour
 {
-    static World _singleton;
-    public static World Singleton
-    {
-        get
-        {
-            if (_singleton == null)
-            {
-                _singleton = FindObjectOfType<World>();
-            }
-            return _singleton;
-        }
-    }
+    #region SyncData
 
-    public StaticData StaticData;
-    public SceneData SceneData;
-
-    Dictionary<uint, PlayerInput_NetScript> _netScriptDict = new Dictionary<uint, PlayerInput_NetScript>();
     SyncList<uint> _netIndexes = new SyncList<uint>();
     SyncList<int> _SyncScoreCount = new SyncList<int>();
+
+    #endregion
+
+    #region ServerCode
+
+    Dictionary<uint, PlayerInput_NetScript> _netScriptDict = null;
+
+    //Serever Start
+    public override void OnStartServer()
+    {
+        _netScriptDict = new Dictionary<uint, PlayerInput_NetScript>();
+    }
+    public override void OnStopServer()
+    {
+        _netScriptDict.Clear();
+        _netScriptDict = null;
+    }
 
     [Server]
     public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript)
     {
         Debug.Log("Add netID " + targetNetId);
-        if (!_netScriptDict.TryAdd(targetNetId, netScript))
-        {
-            if (_netScriptDict[targetNetId] == null)
-            {
-                PlayerRemove(targetNetId);
-            }
-            _netScriptDict.Remove(targetNetId);
-            _netScriptDict.Add(targetNetId, netScript);
-        }
+
+        _netScriptDict.Add(targetNetId, netScript);
         _netIndexes.Add(targetNetId);
         _SyncScoreCount.Add(0);
     }
@@ -47,13 +41,53 @@ public class World : NetworkBehaviour
     public void PlayerRemove(uint targetNetId)
     {
         Debug.Log("Remove netID " + targetNetId);
-        var index = _netIndexes.FindIndex(x => x == targetNetId);
-        if (index >= 0) _SyncScoreCount.RemoveAt(index);
-        _netIndexes.Remove(targetNetId);
 
+        var index = _netIndexes.FindIndex(x => x == targetNetId);
+        if (index != -1) _SyncScoreCount.RemoveAt(index);
+
+        _netIndexes.Remove(targetNetId);
         _netScriptDict.Remove(targetNetId);
     }
 
+
+    [Server]
+    void EndOfGame(int winnerIndex)
+    {
+        var winnerName = "Player " + winnerIndex.ToString();
+        foreach (var a_netId in _netIndexes)
+        {
+            _netScriptDict[a_netId].RpcShowWinWindow(winnerName);
+        }
+        StartCoroutine(RestartGame());
+    }
+    [Server]
+    public IEnumerator RestartGame()
+    {
+        yield return new WaitForSeconds(5f);
+
+        //Сброс счёта
+        for (int i = 0; i < _SyncScoreCount.Count; i++)
+        {
+            _SyncScoreCount[i] = 0;
+        }
+
+        //Перезапуск клиентов
+        foreach (var a_netId in _netIndexes)
+        {
+            _netScriptDict[a_netId].RpcRestartUI();
+        }
+    }
+
+
+    [Server]
+    public void DashHit(uint owner, uint targetNetId)
+    {
+        AddPoint(owner);
+
+        var otherNetScript = _netScriptDict[targetNetId];
+        otherNetScript.RpcSetInvincible();
+        StartCoroutine(RemoveInvincible(otherNetScript));
+    }
     [Server]
     public void AddPoint(uint targetNetId)
     {
@@ -68,71 +102,51 @@ public class World : NetworkBehaviour
             }
         }
     }
-
-    [Server]
-    void EndOfGame(int winnerIndex)
-    {
-        var winnerName = "Player " + winnerIndex.ToString();
-        foreach (var a_netId in _netIndexes)
-        {
-            _netScriptDict[a_netId].RpcShowWinWindow(winnerName);
-        }
-        StartCoroutine(RestartGame());
-    }
-
-    [Server]
-    public void DashHit(uint owner, uint targetNetId)
-    {
-        AddPoint(owner);
-
-        var otherNetScript = _netScriptDict[targetNetId];
-        otherNetScript.RpcSetInvincible();
-        StartCoroutine(RemoveInvincible(otherNetScript));
-    }
-
     [Server]
     public IEnumerator RemoveInvincible(PlayerInput_NetScript netScript)
     {
         yield return new WaitForSeconds(StaticData.invincibleCooldown_sec);
         netScript.RpcRemoveInvincible();
     }
-    [Server]
-    public IEnumerator RestartGame()
+
+    #endregion
+
+    #region ClientCode
+
+    static World _singleton;
+    public static World Singleton
     {
-        yield return new WaitForSeconds(5f);
-
-        for (int i = 0; i < _SyncScoreCount.Count; i++)
+        get
         {
-            _SyncScoreCount[i] = 0;
-        }
-
-        foreach (var a_netId in _netIndexes)
-        {
-            _netScriptDict[a_netId].RpcRestart();
+            if (_singleton == null)
+            {
+                _singleton = FindObjectOfType<World>();
+            }
+            return _singleton;
         }
     }
-
-    #region Client
+    public StaticData StaticData;
+    public SceneData SceneData;
 
     internal uint myIndex = 0;
-    GUIStyle selectedStyle = null;
+    GUIStyle selectedStyle = new GUIStyle();
 
     void Awake()
     {
-        selectedStyle = new GUIStyle();
         selectedStyle.normal.textColor = Color.red;
     }
 
     void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 80, 200, 500));
+        GUILayout.BeginArea(new Rect(10, 100, 200, 500));
 
-        GUILayout.Label("LOL " + _SyncScoreCount.Count);
+        GUILayout.Label("Players Count: " + _SyncScoreCount.Count);
+
         StringBuilder sb = new StringBuilder();
         var i = 0;
         foreach (var SCORE in _SyncScoreCount)
         {
-            sb.Append("ID:");
+            sb.Append("Player ");
             sb.Append(i);
             sb.Append("\tScore:");
             sb.Append(SCORE);
