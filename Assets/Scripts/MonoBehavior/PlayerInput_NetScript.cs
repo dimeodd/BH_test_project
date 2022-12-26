@@ -18,12 +18,23 @@ public class PlayerInput_NetScript : NetworkBehaviour
         _provider = GetComponent<PlayerProvider>();
     }
 
+    void OnGUI()
+    {
+        GUILayout.Label("Удерживаете \"Левый Alt\", чтобы использовать курсор");
+    }
+
     public override void OnStartClient()
     {
         if (isLocalPlayer)
         {
             _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
             _provider.cameraSwaper.ToThirdViev();
+            DisableCursor();
+        }
+
+        if (isServer)
+        {
+            World.Singleton.PlayerRegistr(netId, this);
         }
     }
     public override void OnStopClient()
@@ -31,6 +42,12 @@ public class PlayerInput_NetScript : NetworkBehaviour
         if (isLocalPlayer)
         {
             _provider.cameraSwaper.ToWaitViev();
+            EnableCursor();
+        }
+
+        if (isServer)
+        {
+            World.Singleton.PlayerRemove(netId);
         }
     }
 
@@ -38,41 +55,59 @@ public class PlayerInput_NetScript : NetworkBehaviour
     {
         if (isLocalPlayer)
         {
+            CheckAltButton();
+
             var moveDir = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
             _provider.moveScript.SetMoveDirection(moveDir);
 
-            var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
-            _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
-            if (Input.GetMouseButtonDown(0))
+            if (!Cursor.visible)
             {
-                var dash = new DashSystem(_provider, StaticData);
-                dash.UseSkill();
+                var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
+                _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
+
+                if (Input.GetMouseButtonDown(0))
+                {
+                    var dash = new DashSystem(_provider, StaticData, this);
+                    dash.UseSkill();
+                }
             }
         }
     }
 
+    void CheckAltButton()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftAlt))
+        {
+            EnableCursor();
+        }
+        if (Input.GetKeyUp(KeyCode.LeftAlt))
+        {
+            DisableCursor();
+        }
+    }
 
-    // [Command]
-    // void CmdCreatePlayer(uint a_netId)
-    // {
-    //     World.Singleton.CreatePlayer(a_netId, this);
-    // }
+    void EnableCursor()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+    void DisableCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
 
-    // void SyncInput(Vector2 oldValue, Vector2 newValue)
-    // {
-    //     if (!isServer || playerEnt.Is;Destroyed()) return;
 
-    //     ref var input = ref playerEnt.Get<InputData>();
-    //     input.move = newValue;
-    // }
+    [Command]
+    public void CmdDashHit(uint owner, uint target)
+    {
+        World.Singleton.DashHit(owner, target);
+    }
 
-    // void SyncLook(Vector2 oldValue, Vector2 newValue)
-    // {
-    //     if (!isServer || playerEnt.IsDestroyed()) return;
 
-    //     ref var input = ref playerEnt.Get<InputData>();
-    //     input.HorizontalRotation = newValue.x;
-    //     input.VerticalRotation = newValue.y;
-    // }
-
+    [ClientRpc]
+    public void RpcDamage()
+    {
+        _provider.skinRenderer.material = StaticData.invincibleMaterial;
+    }
 }

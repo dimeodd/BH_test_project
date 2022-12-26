@@ -2,9 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
-using MyEcs;
-using EcsStructs;
-using EcsSystems;
+using System;
+using System.Text;
 
 public class World : NetworkBehaviour
 {
@@ -24,114 +23,113 @@ public class World : NetworkBehaviour
     public StaticData StaticData;
     public SceneData SceneData;
 
-    EcsWorld _world;
-    EcsSystem _allSys, _upd, _fixUpd;
+    Dictionary<uint, PlayerInput_NetScript> _netScriptDict = new Dictionary<uint, PlayerInput_NetScript>();
+    List<uint> _netIndexes = new List<uint>();
+    SyncList<int> _SyncScoreCount = new SyncList<int>();
 
-    void OnDestroy()
+    [Server]
+    void ChangeVector3Vars(int newValue)
     {
-        _singleton = null;
+        _SyncScoreCount.Add(newValue);
     }
-
 
     [Server]
     public override void OnStartServer()
     {
         if (!isServer) return;
-
-        InitSpawnPoints();
-
-        if (_world != null)
-            throw new System.Exception("EcsWorld не очищен");
-        _world = new EcsWorld();
-
-        // _upd = new EcsSystem(_world)
-        //     .Add(new InpytSystem())
-        //     ;
-
-        // _fixUpd = new EcsSystem(_world)
-        //     .Add(new MoveSystem())
-        //     ;
-
-        // _allSys = new EcsSystem(_world)
-        //     .Add(_upd)
-        //     .Add(_fixUpd)
-        //     .Inject(StaticData)
-        //     .Inject(SceneData)
-        //     ;
-        // _allSys.Init();
     }
 
     [Server]
-    public override void OnStopServer()
+    public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript)
     {
-        _world.Dispose();
-        _world = null;
+        _netScriptDict.Add(targetNetId, netScript);
+        _netIndexes.Add(targetNetId);
+        _SyncScoreCount.Add(0);
+    }
+    [Server]
+    public void PlayerRemove(uint targetNetId)
+    {
+        _netScriptDict.Remove(targetNetId);
+
+        var index = _netIndexes.FindIndex(x => x == targetNetId);
+        _SyncScoreCount.RemoveAt(index);
+        _netIndexes.RemoveAt(index);
     }
 
     [Server]
-    void Update()
+    public void AddPoint(uint targetNetId)
     {
-        // _upd.Upd();
+        var index = _netIndexes.FindIndex(x => x == targetNetId);
+        _SyncScoreCount[index]++;
     }
+
 
     [Server]
-    void FixedUpdate()
+    public void DashHit(uint owner, uint targetNetId)
     {
-        // _fixUpd.Upd();
+        AddPoint(owner);
+
+        var otherNetScript = _netScriptDict[targetNetId];
+        otherNetScript.RpcDamage();
     }
 
+    #region Client
 
-    void InitSpawnPoints()
+    public List<int> ScoreCount;
+    void SyncScoreCount(SyncList<int>.Operation op, int index, int oldItem, int newItem)
     {
-        var goArray = GameObject.FindGameObjectsWithTag("Respawn");
-        SceneData.SpawnPositions = new Transform[goArray.Length];
-
-        for (int i = 0, iMax = goArray.Length; i < iMax; i++)
+        switch (op)
         {
-            SceneData.SpawnPositions[i] = goArray[i].transform;
+            case SyncList<int>.Operation.OP_ADD:
+                {
+                    ScoreCount.Add(newItem);
+                    break;
+                }
+            case SyncList<int>.Operation.OP_CLEAR:
+                {
+                    ScoreCount.Clear();
+                    break;
+                }
+            case SyncList<int>.Operation.OP_INSERT:
+                {
+
+                    break;
+                }
+            case SyncList<int>.Operation.OP_REMOVEAT:
+                {
+                    ScoreCount.Remove(index);
+                    break;
+                }
+            case SyncList<int>.Operation.OP_SET:
+                {
+                    ScoreCount[index] = newItem;
+                    break;
+                }
         }
     }
 
-    [Server]
-    internal void CreatePlayer(uint a_netId, PlayerInput_NetScript inputScript)
+    void OnGUI()
     {
-        var ecsWorld = World.Singleton._world;
-        var stData = World.Singleton.StaticData;
-        var sceneData = World.Singleton.SceneData;
+        GUILayout.BeginArea(new Rect(10, 80, 200, 500));
 
-        var rndIndex = Random.Range(0, sceneData.SpawnPositions.Length - 1);
-        var rndPos = sceneData.SpawnPositions[rndIndex];
+        GUILayout.Label("LOL " + _SyncScoreCount.Count);
+        StringBuilder sb = new StringBuilder();
+        var i = 0;
+        foreach (var SCORE in _SyncScoreCount)
+        {
+            sb.Append("ID:");
+            sb.Append(i);
+            sb.Append("\tScore:");
+            sb.Append(SCORE);
 
-        var playerGo = inputScript.gameObject;
-        playerGo.transform.position = rndPos.position;
-        var playerProvider = playerGo.GetComponent<PlayerProvider>();
+            GUILayout.Label(sb.ToString());
 
-        var ent = ecsWorld.NewEntity();
-        MyEcs.GoPool.Helper.LinkObjects(ent, playerGo);
+            sb.Clear();
+            i++;
+        }
 
-        ref var playerData = ref ent.Get<PlayerData>();
-        playerData.followTarget = playerProvider.followTarget;
-
-        ref var input = ref ent.Get<InputData>();
-        input.HorizontalRotation = 0;
-        input.VerticalRotation = 0;
-
-        ref var netData = ref ent.Get<NetData>();
-        netData.netId = a_netId;
-
-        ref var rbData = ref ent.Get<RigidbodyData>();
-        rbData.rigidbody = playerGo.GetComponent<Rigidbody>();
-
-        ref var tfData = ref ent.Get<TransformData>();
-        tfData.transform = playerGo.transform;
-
-        inputScript.playerEnt = ent;
-        inputScript.playerGo = playerGo;
+        GUILayout.EndArea();
     }
 
-    [Server]
-    internal void DestroyPlayer(PlayerInput_NetScript inputScript)
-    {
-        inputScript.playerEnt.Destroy();
-    }
+    #endregion
 }
