@@ -30,18 +30,28 @@ public class World : NetworkBehaviour
     [Server]
     public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript)
     {
-        _netScriptDict.Add(targetNetId, netScript);
+        Debug.Log("Add netID " + targetNetId);
+        if (!_netScriptDict.TryAdd(targetNetId, netScript))
+        {
+            if (_netScriptDict[targetNetId] == null)
+            {
+                PlayerRemove(targetNetId);
+            }
+            _netScriptDict.Remove(targetNetId);
+            _netScriptDict.Add(targetNetId, netScript);
+        }
         _netIndexes.Add(targetNetId);
         _SyncScoreCount.Add(0);
     }
     [Server]
     public void PlayerRemove(uint targetNetId)
     {
-        _netScriptDict.Remove(targetNetId);
-
+        Debug.Log("Remove netID " + targetNetId);
         var index = _netIndexes.FindIndex(x => x == targetNetId);
-        _SyncScoreCount.RemoveAt(index);
+        if (index >= 0) _SyncScoreCount.RemoveAt(index);
         _netIndexes.Remove(targetNetId);
+
+        _netScriptDict.Remove(targetNetId);
     }
 
     [Server]

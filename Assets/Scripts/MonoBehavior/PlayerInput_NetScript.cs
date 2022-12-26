@@ -54,8 +54,10 @@ public class PlayerInput_NetScript : NetworkBehaviour
             CmdPlayerRegister();
         }
     }
-    public override void OnStopClient()
+
+    public override void OnStopAuthority()
     {
+        Debug.Log("Stop "+ isServer);
         if (isLocalPlayer)
         {
             _provider.cameraSwaper.ToWaitViev();
@@ -65,6 +67,10 @@ public class PlayerInput_NetScript : NetworkBehaviour
         if (isServer)
         {
             World.Singleton.PlayerRemove(netId);
+        }
+        else
+        {
+            CmdPlayerRemove(netId);
         }
     }
 
@@ -126,11 +132,15 @@ public class PlayerInput_NetScript : NetworkBehaviour
     {
         World.Singleton.DashHit(owner, target);
     }
-
     [Command]
     public void CmdPlayerRegister()
     {
         World.Singleton.PlayerRegistr(netId, this);
+    }
+    [Command]
+    public void CmdPlayerRemove(uint a_netId)
+    {
+        World.Singleton.PlayerRemove(a_netId);
     }
 
 
