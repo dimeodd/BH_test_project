@@ -13,9 +13,13 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [HideInInspector] public GameObject playerGo;
 
     PlayerProvider _provider = null;
+    SceneData _scene = null;
 
     [SyncVar]
     public bool isInvincible = false;
+
+
+    public bool blockInput = false;
 
     void Awake()
     {
@@ -29,12 +33,16 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
     public override void OnStartClient()
     {
+        _scene = World.Singleton.SceneData;
+
         if (isLocalPlayer)
         {
             _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
             _provider.cameraSwaper.ToThirdViev();
             DisableCursor();
             World.Singleton.myIndex = netId;
+
+            Restart();
         }
 
         if (isServer & isLocalPlayer)
@@ -62,6 +70,12 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
     void Update()
     {
+        if (blockInput)
+        {
+            _provider.moveScript.SetMoveDirection(new Vector2());
+            return;
+        }
+
         if (isLocalPlayer)
         {
             CheckAltButton();
@@ -132,5 +146,29 @@ public class PlayerInput_NetScript : NetworkBehaviour
     {
         isInvincible = false;
         _provider.skinRenderer.material = StaticData.defMaterial;
+    }
+
+    [ClientRpc]
+    public void RpcShowWinWindow(string text)
+    {
+        EnableCursor();
+        blockInput = true;
+        _scene.winnerText.text = text;
+        _scene.winnerWindow.SetActive(true);
+    }
+
+    [ClientRpc]
+    public void RpcRestart()
+    {
+        Restart();
+    }
+
+    void Restart()
+    {
+        DisableCursor();
+        blockInput = false;
+        _scene.winnerWindow.SetActive(false);
+        var pos = new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10));
+        transform.position = pos;
     }
 }

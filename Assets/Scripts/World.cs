@@ -33,8 +33,6 @@ public class World : NetworkBehaviour
         _netScriptDict.Add(targetNetId, netScript);
         _netIndexes.Add(targetNetId);
         _SyncScoreCount.Add(0);
-
-        Debug.Log("Add key " + targetNetId);
     }
     [Server]
     public void PlayerRemove(uint targetNetId)
@@ -51,9 +49,26 @@ public class World : NetworkBehaviour
     {
         var index = _netIndexes.FindIndex(x => x == targetNetId);
         if (index >= 0)
+        {
             _SyncScoreCount[index]++;
+
+            if (_SyncScoreCount[index] >= 3)
+            {
+                EndOfGame(index);
+            }
+        }
     }
 
+    [Server]
+    void EndOfGame(int winnerIndex)
+    {
+        var winnerName = "Player " + winnerIndex.ToString();
+        foreach (var a_netId in _netIndexes)
+        {
+            _netScriptDict[a_netId].RpcShowWinWindow(winnerName);
+        }
+        StartCoroutine(RestartGame());
+    }
 
     [Server]
     public void DashHit(uint owner, uint targetNetId)
@@ -70,6 +85,21 @@ public class World : NetworkBehaviour
     {
         yield return new WaitForSeconds(StaticData.invincibleCooldown_sec);
         netScript.RpcRemoveInvincible();
+    }
+    [Server]
+    public IEnumerator RestartGame()
+    {
+        yield return new WaitForSeconds(5f);
+
+        for (int i = 0; i < _SyncScoreCount.Count; i++)
+        {
+            _SyncScoreCount[i] = 0;
+        }
+
+        foreach (var a_netId in _netIndexes)
+        {
+            _netScriptDict[a_netId].RpcRestart();
+        }
     }
 
     #region Client
