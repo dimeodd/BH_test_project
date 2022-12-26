@@ -19,4 +19,4 @@ MonoBehaviour:
   mouseSensetivity: 50
   playerSpeed: 5
   dashLeght_m: 3
-  invincibleCooldown_sec: 1
+  invincibleCooldown_sec: 3

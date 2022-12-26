@@ -26,52 +26,28 @@ public class PlayerInput_NetScript : NetworkBehaviour
         _provider = GetComponent<PlayerProvider>();
     }
 
-    void OnGUI()
-    {
-        GUILayout.Label("Удерживаете \"Левый Alt\", чтобы использовать курсор");
-    }
-
-    public override void OnStartClient()
+    public override void OnStartLocalPlayer()
     {
         _scene = World.Singleton.SceneData;
 
-        if (isLocalPlayer)
-        {
-            _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
-            _provider.cameraSwaper.ToThirdViev();
-            DisableCursor();
-            World.Singleton.myIndex = netId;
+        _provider.cameraSwaper = new CameraSwaper(_provider, World.Singleton.SceneData);
+        _provider.cameraSwaper.ToThirdViev();
+        DisableCursor();
+        World.Singleton.myIndex = netId;
 
-            Restart();
-        }
+        Restart();
 
-        if (isServer & isLocalPlayer)
-        {
-            World.Singleton.PlayerRegistr(netId, this);
-        }
-        else if (!isServer & isLocalPlayer)
-        {
-            CmdPlayerRegister();
-        }
+        CmdPlayerRegister();
     }
 
-    public override void OnStopAuthority()
+    public override void OnStopServer()
     {
-        Debug.Log("Stop "+ isServer);
-        if (isLocalPlayer)
-        {
-            _provider.cameraSwaper.ToWaitViev();
-            EnableCursor();
-        }
-
-        if (isServer)
-        {
-            World.Singleton.PlayerRemove(netId);
-        }
-        else
-        {
-            CmdPlayerRemove(netId);
-        }
+        World.Singleton.PlayerRemove(netId);
+    }
+    public override void OnStopLocalPlayer()
+    {
+        _provider.cameraSwaper.ToWaitViev();
+        EnableCursor();
     }
 
     void Update()
@@ -103,6 +79,11 @@ public class PlayerInput_NetScript : NetworkBehaviour
         }
     }
 
+
+    void OnGUI()
+    {
+        GUILayout.Label("Удерживаете \"Левый Alt\", чтобы использовать курсор");
+    }
     void CheckAltButton()
     {
         if (Input.GetKeyDown(KeyCode.LeftAlt))
@@ -140,7 +121,8 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [Command]
     public void CmdPlayerRemove(uint a_netId)
     {
-        World.Singleton.PlayerRemove(a_netId);
+        Debug.Log("net PlayerRemove.  isServ:" + isServer);
+        World.Singleton.PlayerRemove(netId);
     }
 
 
@@ -161,16 +143,22 @@ public class PlayerInput_NetScript : NetworkBehaviour
     [ClientRpc]
     public void RpcShowWinWindow(string text)
     {
-        EnableCursor();
-        blockInput = true;
-        _scene.winnerText.text = text;
-        _scene.winnerWindow.SetActive(true);
+        if (isLocalPlayer)
+        {
+            EnableCursor();
+            blockInput = true;
+            _scene.winnerText.text = text;
+            _scene.winnerWindow.SetActive(true);
+        }
     }
 
     [ClientRpc]
     public void RpcRestart()
     {
-        Restart();
+        if (isLocalPlayer)
+        {
+            Restart();
+        }
     }
 
     void Restart()
