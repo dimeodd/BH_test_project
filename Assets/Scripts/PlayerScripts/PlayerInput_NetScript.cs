@@ -13,6 +13,8 @@ public class PlayerInput_NetScript : NetworkBehaviour
     PlayerProvider _provider = null;
     CameraSwaper _cameraSwaper = null;
 
+    BilboardRotator _nickRotator = null;
+
     void Awake()
     {
         _provider = GetComponent<PlayerProvider>();
@@ -27,16 +29,31 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
         RestartUI();
         RandomSpawn();
+        CmdPlayerRegistr(_scene.nameText.text);
+        _scene.nameWindow.SetActive(false);
     }
-    public override void OnStartServer()
+    public override void OnStartClient()
     {
-        World.Singleton.PlayerRegistr(netId, this);
+        _scene = World.Singleton.SceneData;
+        _nickRotator = new BilboardRotator(_provider.nameText.transform, _scene.cameraTransform);
+    }
+    
+     [Command]
+    public void CmdPlayerRegistr(string Name)
+    {
+        World.Singleton.PlayerRegistr(netId, this, Name);
+    }
+    [ClientRpc]
+    public void RpcSetName(string Name)
+    {
+        _provider.nameText.text = Name;
     }
 
     public override void OnStopLocalPlayer()
     {
         _cameraSwaper.ToWaitViev();
         EnableCursor();
+        _scene.nameWindow.SetActive(true);
     }
     public override void OnStopServer()
     {
@@ -45,6 +62,8 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
     void Update()
     {
+        _nickRotator?.Update();
+
         if (!isLocalPlayer) return;
 
 

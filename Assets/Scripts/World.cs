@@ -8,7 +8,7 @@ using System.Text;
 
 public struct PlayerData
 {
-    public uint netIndex;
+    public uint NetIndex;
     public int Score;
     public string Name;
 }
@@ -16,9 +16,6 @@ public struct PlayerData
 public class World : NetworkBehaviour
 {
     #region SyncData
-
-    SyncList<uint> _netIndexes = new SyncList<uint>();
-    SyncList<int> _SyncScoreCount = new SyncList<int>();
 
     SyncList<PlayerData> _SyncPlayerData = new SyncList<PlayerData>();
 
@@ -44,23 +41,45 @@ public class World : NetworkBehaviour
     }
 
     [Server]
-    public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript)
+    public void PlayerRegistr(uint targetNetId, PlayerInput_NetScript netScript, string PlayerName)
     {
         Debug.Log("Add netID " + targetNetId);
 
+        var playerData = new PlayerData();
+        playerData.NetIndex = targetNetId;
+
+        if (PlayerName.Length == 0)
+        {
+            PlayerName = "NoName";
+        }
+        playerData.Name = PlayerName;
+        var i = 0;
+        var tryCount = 20;
+        while (_SyncPlayerData.FindIndex(x => x.Name == playerData.Name) != -1)
+        {
+            playerData.Name = PlayerName + i++;
+            if (--tryCount < 0)
+                break;
+        }
+
+        _SyncPlayerData.Add(playerData);
         _netScriptDict.Add(targetNetId, netScript);
-        _netIndexes.Add(targetNetId);
-        _SyncScoreCount.Add(0);
+
+        //Update Names
+        foreach (var data in _SyncPlayerData)
+        {
+            var data_netScript = _netScriptDict[data.NetIndex];
+            data_netScript.RpcSetName(data.Name);
+        }
     }
     [Server]
     public void PlayerRemove(uint targetNetId)
     {
         Debug.Log("Remove netID " + targetNetId);
 
-        var index = _netIndexes.FindIndex(x => x == targetNetId);
-        if (index != -1) _SyncScoreCount.RemoveAt(index);
+        var index = _SyncPlayerData.FindIndex(x => x.NetIndex == targetNetId);
+        if (index != -1) _SyncPlayerData.RemoveAt(index);
 
-        _netIndexes.Remove(targetNetId);
         _netScriptDict.Remove(targetNetId);
     }
 
@@ -68,10 +87,11 @@ public class World : NetworkBehaviour
     [Server]
     void EndOfGame(int winnerIndex)
     {
-        var winnerName = "Player " + winnerIndex.ToString();
-        foreach (var a_netId in _netIndexes)
+        var winnerName = _SyncPlayerData[winnerIndex].Name;
+
+        foreach (var data in _SyncPlayerData)
         {
-            _netScriptDict[a_netId].RpcShowWinWindow(winnerName);
+            _netScriptDict[data.NetIndex].RpcShowWinWindow(winnerName);
         }
         StartCoroutine(RestartGame());
     }
@@ -81,17 +101,20 @@ public class World : NetworkBehaviour
         yield return new WaitForSeconds(5f);
 
         //Сброс счёта
-        for (int i = 0; i < _SyncScoreCount.Count; i++)
+        for (int i = 0; i < _SyncPlayerData.Count; i++)
         {
-            _SyncScoreCount[i] = 0;
+            var data = _SyncPlayerData[i];
+            data.Score = 0;
+            _SyncPlayerData[i] = data;
         }
 
         var spawnPosList = ArrayExtention<NetworkStartPosition>.ConvertToList(ref _spawnPosArray);
 
 
         //Перезапуск клиентов
-        foreach (var a_netId in _netIndexes)
+        foreach (var data in _SyncPlayerData)
         {
+            var a_netId = data.NetIndex;
             var count = spawnPosList.Count;
 
             if (count > 0)
@@ -122,12 +145,14 @@ public class World : NetworkBehaviour
     [Server]
     public void AddPoint(uint targetNetId)
     {
-        var index = _netIndexes.FindIndex(x => x == targetNetId);
+        var index = _SyncPlayerData.FindIndex(x => x.NetIndex == targetNetId);
         if (index >= 0)
         {
-            _SyncScoreCount[index]++;
+            var data = _SyncPlayerData[index];
+            data.Score++;
+            _SyncPlayerData[index] = data;
 
-            if (_SyncScoreCount[index] >= 3)
+            if (data.Score >= 3)
             {
                 EndOfGame(index);
             }
@@ -171,17 +196,16 @@ public class World : NetworkBehaviour
     {
         GUILayout.BeginArea(new Rect(10, 100, 200, 500));
 
-        GUILayout.Label("Players Count: " + _SyncScoreCount.Count);
+        GUILayout.Label("Players Count: " + _SyncPlayerData.Count);
 
         StringBuilder sb = new StringBuilder();
         var i = 0;
-        foreach (var SCORE in _SyncScoreCount)
+        foreach (var data in _SyncPlayerData)
         {
-            sb.Append("Player ");
-            sb.Append(i);
+            sb.Append(data.Name);
             sb.Append("\tScore:");
-            sb.Append(SCORE);
-            if (myIndex == _netIndexes[i])
+            sb.Append(data.Score);
+            if (myIndex == data.NetIndex)
             {
                 GUILayout.Label(sb.ToString(), selectedStyle);
             }
