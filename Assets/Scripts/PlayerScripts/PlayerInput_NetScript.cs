@@ -173,7 +173,7 @@ public class PlayerInput_NetScript : NetworkBehaviour
         if (isLocalPlayer)
         {
             RestartUI();
-            transform.position = spawnPos;
+            transform.position = spawnPos.GetXZ_v3();
         }
     }
     void RestartUI()

@@ -110,7 +110,6 @@ public class World : NetworkBehaviour
 
         var spawnPosList = ArrayExtention<NetworkStartPosition>.ConvertToList(ref _spawnPosArray);
 
-
         //Перезапуск клиентов
         foreach (var data in _SyncPlayerData)
         {
@@ -120,7 +119,7 @@ public class World : NetworkBehaviour
             if (count > 0)
             {
                 var rndIndex = UnityEngine.Random.Range(0, count - 1);
-                var pos = spawnPosList[rndIndex].transform.position;
+                var pos = spawnPosList[rndIndex].transform.position.GetXZ_v2();
                 spawnPosList.RemoveAt(rndIndex);
 
                 _netScriptDict[a_netId].RpcRestart(pos);
