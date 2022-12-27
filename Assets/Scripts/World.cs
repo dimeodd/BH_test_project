@@ -1,8 +1,17 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 using System.Text;
+
+
+public struct PlayerData
+{
+    public uint netIndex;
+    public int Score;
+    public string Name;
+}
 
 public class World : NetworkBehaviour
 {
@@ -11,15 +20,21 @@ public class World : NetworkBehaviour
     SyncList<uint> _netIndexes = new SyncList<uint>();
     SyncList<int> _SyncScoreCount = new SyncList<int>();
 
+    SyncList<PlayerData> _SyncPlayerData = new SyncList<PlayerData>();
+
     #endregion
 
     #region ServerCode
 
     Dictionary<uint, PlayerInput_NetScript> _netScriptDict = null;
 
+    NetworkStartPosition[] _spawnPosArray = null;
+
     //Serever Start
     public override void OnStartServer()
     {
+
+        _spawnPosArray = GameObject.FindObjectsOfType<NetworkStartPosition>();
         _netScriptDict = new Dictionary<uint, PlayerInput_NetScript>();
     }
     public override void OnStopServer()
@@ -71,10 +86,26 @@ public class World : NetworkBehaviour
             _SyncScoreCount[i] = 0;
         }
 
+        var spawnPosList = ArrayExtention<NetworkStartPosition>.ConvertToList(ref _spawnPosArray);
+
+
         //Перезапуск клиентов
         foreach (var a_netId in _netIndexes)
         {
-            _netScriptDict[a_netId].RpcRestartUI();
+            var count = spawnPosList.Count;
+
+            if (count > 0)
+            {
+                var rndIndex = UnityEngine.Random.Range(0, count - 1);
+                var pos = spawnPosList[rndIndex].transform.position;
+                spawnPosList.RemoveAt(rndIndex);
+
+                _netScriptDict[a_netId].RpcRestart(pos);
+            }
+            else
+            {
+                _netScriptDict[a_netId].RpcRestart(new Vector2());
+            }
         }
     }
 

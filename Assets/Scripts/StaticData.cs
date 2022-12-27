@@ -3,6 +3,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "StaticData", menuName = "BH_test_project/StaticData", order = 0)]
 public class StaticData : ScriptableObject
 {
+   public LayerMask playerMask;
     [Header("Materials")]
     public Material defMaterial;
     public Material invincibleMaterial;

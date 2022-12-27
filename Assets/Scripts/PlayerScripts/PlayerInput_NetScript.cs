@@ -26,6 +26,7 @@ public class PlayerInput_NetScript : NetworkBehaviour
         World.Singleton.myIndex = netId;
 
         RestartUI();
+        RandomSpawn();
     }
     public override void OnStartServer()
     {
@@ -44,49 +45,59 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
     void Update()
     {
+        if (!isLocalPlayer) return;
+
+
         if (blockInput)
         {
             _provider.moveScript.SetMoveDirection(new Vector2());
+            if (!Cursor.visible) EnableCursor();
             return;
         }
 
-        if (isLocalPlayer)
+        CheckAltButton();
+
+        var moveDir = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
+        _provider.moveScript.SetMoveDirection(moveDir);
+
+        if (!Cursor.visible)
         {
-            CheckAltButton();
+            var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
+            _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
 
-            var moveDir = new Vector2(Input.GetAxis("Vertical"), Input.GetAxis("Horizontal"));
-            _provider.moveScript.SetMoveDirection(moveDir);
-
-            if (!Cursor.visible)
+            if (Input.GetMouseButtonDown(0))
             {
-                var mouseOffset = new Vector2(Input.GetAxis("Mouse X"), -Input.GetAxis("Mouse Y")) * StaticData.mouseSensetivity * 0.01f;
-                _provider.moveScript.SetLookOffset(mouseOffset * 0.05f);
-
-                if (Input.GetMouseButtonDown(0))
-                {
-                    var dash = new DashSystem(_provider, StaticData, this);
-                    dash.UseSkill();
-                }
+                var dash = new DashSystem(_provider, StaticData, this);
+                dash.UseSkill();
             }
         }
+
     }
 
     #region GUI & Cursor
-
     void OnGUI()
     {
         GUILayout.Label("Удерживаете \"Левый Alt\", чтобы использовать курсор");
     }
     void CheckAltButton()
     {
-        if (Input.GetKeyDown(KeyCode.LeftAlt))
+        var altPressedNow = Input.GetKey(KeyCode.LeftAlt);
+
+        if (altPressedNow & !Cursor.visible)
         {
             EnableCursor();
         }
-        if (Input.GetKeyUp(KeyCode.LeftAlt))
+        if (!altPressedNow & Cursor.visible)
         {
             DisableCursor();
         }
+    }
+    void OnApplicationFocus(bool hasFocus)
+    {
+        if (hasFocus)
+            DisableCursor();
+        else
+            EnableCursor();
     }
     void EnableCursor()
     {
@@ -123,7 +134,6 @@ public class PlayerInput_NetScript : NetworkBehaviour
 
     #endregion
 
-    #region Win
 
     [ClientRpc]
     public void RpcShowWinWindow(string text)
@@ -139,17 +149,12 @@ public class PlayerInput_NetScript : NetworkBehaviour
         }
     }
     [ClientRpc]
-    public void RpcRestartUI()
+    public void RpcRestart(Vector2 spawnPos)
     {
         if (isLocalPlayer)
         {
             RestartUI();
-
-            var spawnPosArray = GameObject.FindObjectsOfType<NetworkStartPosition>();
-
-            var rndIndex = Random.Range(0, spawnPosArray.Length);
-            var pos = spawnPosArray[rndIndex].transform.position;
-            transform.position = pos;
+            transform.position = spawnPos;
         }
     }
     void RestartUI()
@@ -161,5 +166,32 @@ public class PlayerInput_NetScript : NetworkBehaviour
         _scene.winnerWindow.SetActive(false);
     }
 
-    #endregion 
+    void RandomSpawn()
+    {
+        var spawnPosArray = GameObject.FindObjectsOfType<NetworkStartPosition>();
+
+        //Random spawn
+        var rndIndex = Random.Range(0, spawnPosArray.Length);
+        var pos = spawnPosArray[rndIndex].transform.position;
+        if (!Physics.CheckSphere(pos, 0.6f, StaticData.playerMask))
+        {
+            transform.position = pos;
+            return;
+        }
+
+        //Classic spawn if place is taken
+        for (int i = 0, iMax = spawnPosArray.Length; i < iMax; i++)
+        {
+            pos = spawnPosArray[i].transform.position;
+            if (!Physics.CheckSphere(pos, 0.6f, StaticData.playerMask))
+            {
+                transform.position = pos;
+                return;
+            }
+        }
+
+        //Force spawn
+        transform.position = new Vector2();
+    }
+
 }
